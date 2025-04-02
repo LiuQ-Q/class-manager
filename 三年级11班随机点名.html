@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <style>
+    body {
+      background-color: #f5f5dc;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      color: #ff6347;
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
+
+    #result {
+      background-color: #fff;
+      border: 5px solid #ffa07a;
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 4em;
+      width: 300px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    button {
+      background-color: #98fb98;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      font-size: 1.5em;
+      padding: 15px 30px;
+      margin: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background-color: #7cfc00;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>三年级11班随机点名</h1>
+  <div id="result"></div>
+  <button onclick="startRollCall()">开始</button>
+  <button onclick="stopRollCall()">结束</button>
+
+  <script>
+    // 这里可以修改人名列表
+    const names = [
+      '姚沐言',
+      '蒙诺宽',
+      '王悦宁',
+      '李闻轩',
+      '赵婉扬',
+      '秦浚源',
+      '王振煊',
+      '金熙皓',
+      '吴晓鸥',
+      '韩墨雅',
+      '易鑫唯',
+      '张琼予',
+      '刘若衡',
+      '吴思杬',
+      '路梦琪',
+      '赵晟竹',
+      '杜瑞羚',
+      '包又菡',
+      '臧富存',
+      '吴晓珺',
+      '王子安',
+      '门熙喆',
+      '周梓淇',
+      '田畯霖',
+      '刘艺韬',
+      '孙艺菡',
+      '孙昳萧',
+      '张可欣',
+      '孙浩诚',
+      '荣子桐',
+      '周诗洋',
+      '王薪乔',
+      '邹凤天',
+      '邱湐淋',
+      '靖翊凡',
+      '金路依',
+      '马宇鑫',
+      '李显一',
+      '李泉宜',
+    ];
+    let intervalId;
+
+    function startRollCall() {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      intervalId = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * names.length);
+        const selectedName = names[randomIndex];
+        document.getElementById('result').textContent = selectedName;
+      }, 100);
+    }
+
+    function stopRollCall() {
+      clearInterval(intervalId);
+    }
+  </script>
+</body>
+
+</html>
+
+姚沐言,蒙诺宽,王悦宁,李闻轩,赵婉扬,秦浚源,王振煊,金熙皓,吴晓鸥,韩墨雅,易鑫唯,张琼予,刘若衡,吴思杬,路梦琪,赵晟竹,杜瑞羚,包又菡,臧富存,吴晓珺,王子安,门熙喆,周梓淇,田畯霖,刘艺韬,孙艺菡,孙昳萧,张可欣,孙浩诚,荣子桐,周诗洋,王薪乔,邹凤天,邱湐淋,靖翊凡,金路依,马宇鑫,李显一,李泉宜,

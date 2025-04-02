@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三年11班 - 班级管理系统</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #000428, #004e92);
+            background-attachment: fixed; /* 固定背景，防止滚动时背景重复 */
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: grid;
+            grid-template-rows: auto 1fr; /* 头部自适应高度，内容区域占满剩余空间 */
+            grid-template-columns: 3fr 1fr;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* 动态小星星样式 */
+       .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 5s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: 0.2;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 头部样式 */
+        .header {
+            grid-column: 1 / -1;
+            grid-row: 1; /* 明确指定头部在第一行 */
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #00f7ff;
+            z-index: 10;
+            position: sticky; /* 使头部固定在顶部 */
+            top: 0; /* 固定在顶部 */
+        }
+        
+        .header h1 {
+            margin: 0;
+            text-shadow: 0 0 10px #00f7ff;
+            font-size: 1.8em;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00f7ff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .button:hover {
+            background: #00f7ff33;
+            transform: scale(1.05);
+        }
+
+        #container {
+            grid-row: 2; /* 内容区域在第二行 */
+            grid-column: 1; /* 内容区域在第一列 */
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+            overflow-y: auto;
+            height: calc(100vh - 60px); /* 减去头部高度 */
+        }
+
+        #rollName {
+            font-size: 4em;
+            text-align: center;
+            margin: 20px;
+            text-shadow: 0 0 10px #00f7ff;
+        }
+
+        .groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px; /* 添加底部边距，确保最后一行分组有足够空间 */
+            padding-bottom: 20px; /* 添加底部内边距 */
+        }
+
+        .group {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .group:hover {
+            transform: scale(1.05);
+        }
+
+        /* 每组第1个学生特效 */
+       .group div:nth-child(2) {
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700;
+            animation: enhancedGlow 2s infinite;
+        }
+
+        /* 每组第2个学生稍弱特效 */
+       .group div:nth-child(3) {
+            color: #00ff7f;
+            text-shadow: 0 0 10px #00ff7f;
+            animation: lessEnhancedGlow 2s infinite;
+        }
+
+        @keyframes enhancedGlow {
+            0%, 100% {
+                filter: hue-rotate(0deg);
+            }
+            50% {
+                filter: hue-rotate(45deg);
+            }
+        }
+
+        @keyframes lessEnhancedGlow {
+            0%, 100% {
+                filter: hue-rotate(0deg);
+            }
+            50% {
+                filter: hue-rotate(20deg);
+            }
+        }
+
+        button {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00f7ff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: rgba(0, 247, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .score {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        #ranking {
+            grid-row: 2; /* 排行榜在第二行 */
+            grid-column: 2; /* 排行榜在第二列 */
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 1px solid #00f7ff;
+            z-index: 1;
+            overflow-y: auto;
+            height: calc(100vh - 60px); /* 减去头部高度 */
+        }
+
+       .rank-item {
+            font-size: 1.2em;
+            margin: 10px 0;
+            padding: 5px;
+            background: linear-gradient(90deg, transparent, #ffffff33);
+            /* 增加分数变化的过渡效果 */
+            transition: all 0.3s ease;
+        }
+
+        #saveRestoreButtons {
+            margin-bottom: 20px;
+        }
+
+        /* 积分记录窗口样式 */
+        #scoreRecordModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #scoreRecordContent {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #00f7ff;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding-top: 50px; /* 为顶部的关闭按钮留出空间 */
+        }
+
+        #closeScoreRecordButton {
+            position: sticky;
+            top: 10px;
+            right: 10px;
+            float: right;
+            z-index: 3; /* 确保按钮在最上层 */
+            background: rgba(255, 0, 0, 0.3);
+            border: 1px solid #ff3333;
+            margin-bottom: 10px;
+        }
+        
+        #closeScoreRecordButton:hover {
+            background: rgba(255, 0, 0, 0.5);
+        }
+
+        /* 个人积分项样式 */
+       .individual-score-item {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 抽奖区域样式 */
+        #lotteryArea {
+            margin: 20px auto;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        #lotteryDisplay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #prizeDisplay {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            border-radius: 8px;
+            color: white;
+            min-width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        #lotteryControls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        #startLotteryBtn, #stopLotteryBtn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #startLotteryBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #stopLotteryBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        #startLotteryBtn:hover, #stopLotteryBtn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        #startLotteryBtn:disabled, #stopLotteryBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #speedControl {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        #lotterySpeed {
+            width: 150px;
+        }
+
+        /* 抽奖特效星星 */
+       .lottery-star {
+            position: absolute;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: lotteryStarTwinkle 2s infinite;
+        }
+
+        @keyframes lotteryStarTwinkle {
+            0%, 100% {
+                opacity: 0.2;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 抽奖速度调节滑轮样式 */
+        #lotterySpeedSlider {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* 一键减分输入框和按钮样式 */
+        #reduceScoreInput {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #00f7ff;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-right: 10px;
+        }
+
+        #reduceScoreButton {
+            padding: 8px 16px;
+        }
+        
+        /* 奖品管理对话框样式 */
+        #prizesDialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #prizesDialogContent {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid #00f7ff;
+            color: white;
+        }
+        
+        #closePrizesButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.3);
+            border: 1px solid #ff3333;
+            font-size: 24px;
+            cursor: pointer;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+        
+        #closePrizesButton:hover {
+            background: rgba(255, 0, 0, 0.5);
+        }
+        
+        .prizes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .prizes-table th, .prizes-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #00f7ff;
+        }
+        
+        .prizes-table th {
+            background-color: rgba(0, 247, 255, 0.1);
+            color: #00f7ff;
+        }
+        
+        .prize-name, .prize-probability {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #00f7ff;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .remove-prize-btn {
+            background-color: rgba(255, 77, 77, 0.3);
+            color: white;
+            border: 1px solid #ff4d4d;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .remove-prize-btn:hover {
+            background-color: rgba(255, 77, 77, 0.5);
+        }
+        
+        .prize-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .add-prize-btn, .reset-prizes-btn, .save-prizes-btn {
+            padding: 8px 15px;
+            border: 1px solid;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: 0.3s;
+        }
+        
+        .add-prize-btn {
+            border-color: #4CAF50;
+        }
+        
+        .add-prize-btn:hover {
+            background-color: rgba(76, 175, 80, 0.3);
+        }
+        
+        .reset-prizes-btn {
+            border-color: #ff9800;
+        }
+        
+        .reset-prizes-btn:hover {
+            background-color: rgba(255, 152, 0, 0.3);
+        }
+        
+        .save-prizes-btn {
+            border-color: #2196F3;
+        }
+        
+        .save-prizes-btn:hover {
+            background-color: rgba(33, 150, 243, 0.3);
+        }
+        
+        .total-probability {
+            margin: 15px 0;
+            font-weight: bold;
+            color: #00f7ff;
+        }
+        
+        .probability-warning {
+            color: #ff4d4d;
+            margin-left: 10px;
+        }
+
+        /* 工具栏样式 */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .toolbar button {
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid #00f7ff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .toolbar button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: rgba(0, 247, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>三年11班</h1>
+        <div class="actions">
+            <a href="/dashboard" class="button">返回仪表板</a>
+            <a href="/edit_groups/161" class="button">编辑分组</a>
+        </div>
+    </div>
+    
+    <div id="container">
+        <div class="toolbar">
+            <button onclick="saveScores()">💾 保存分数</button>
+            <button onclick="restoreScores()">🔄 恢复分数</button>
+            <button onclick="addScoreToAll()">➕ 所有组加分</button>
+            <button onclick="clearScores()">🗑️ 清空分数</button>
+            <button onclick="distributeGroupScores()">📊 分配组内分数</button>
+            <button onclick="viewIndividualScores()">👤 查看个人分数</button>
+            <button onclick="openPrizesDialog()">🎁 管理抽奖奖品</button>
+        </div>
+        <div id="rollName">Ready</div>
+        <button onclick="startRoll()">🚀 开始点名啦</button>
+        <button onclick="stopRoll()">🛑 停止点名咯</button>
+        <div>调节点名速度👉</div>
+        <input type="range" id="speedSlider" min="10" max="200" value="10" oninput="changeSpeed(this.value)">
+        <div class="groups" id="groups"></div>
+    </div>
+    <div id="ranking"></div>
+    <!-- 积分记录窗口 -->
+    <div id="scoreRecordModal">
+        <div id="scoreRecordContent"></div>
+    </div>
+    
+    <!-- 抽奖区域 -->
+<!--     <div id="lotteryArea">
+        <div id="lotteryDisplay">
+            <div id="prizeDisplay">点击开始抽奖</div>
+            <div id="lotteryControls">
+                <button id="startLotteryBtn" onclick="startLottery()">开始抽奖</button>
+                <button id="stopLotteryBtn" onclick="stopLottery()" disabled>停止抽奖</button>
+                <div id="speedControl">
+                    <label for="lotterySpeed">速度:</label>
+                    <input type="range" id="lotterySpeed" min="50" max="500" value="200">
+                </div>
+            </div>
+        </div>
+    </div> -->
+    
+    <!-- 奖品管理对话框 -->
+    <div id="prizesDialog">
+        <div id="prizesDialogContent">
+            <button id="closePrizesButton">×</button>
+            <h2>管理抽奖奖品</h2>
+            <p>设置抽奖奖品和概率，所有概率之和应为1。</p>
+            <table class="prizes-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">奖品名称</th>
+                        <th style="width: 30%;">概率</th>
+                        <th style="width: 10%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="prizesTableBody">
+                    <!-- 奖品行将通过JavaScript动态添加 -->
+                </tbody>
+            </table>
+            <div class="total-probability">
+                总概率: <span id="totalProbability">0</span>
+                <span id="probabilityWarning" class="probability-warning" style="display: none;">
+                    (警告: 概率总和应为1)
+                </span>
+            </div>
+            <div class="prize-actions">
+                <button id="addPrizeBtn" class="add-prize-btn">添加奖品</button>
+                <button id="resetPrizesBtn" class="reset-prizes-btn">重置为默认</button>
+                <button id="savePrizesBtn" class="save-prizes-btn">保存奖品设置</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 个人分数对话框 -->
+    <div id="individualScoresDialog">
+        <!-- ... existing code ... -->
+    </div>
+
+    <script>
+        // 班级ID
+        const classId = 161;
+        // 从Flask传递的数据
+        const allStudents = ["\u79e6\u6d5a\u6e90", "\u738b\u5b50\u5b89", "\u7530\u756f\u9716", "\u8363\u5b50\u6850", "\u674e\u663e\u4e00", "\u674e\u6cc9\u5b9c", "\u59da\u6c90\u8a00", "\u8d75\u5a49\u626c", "\u738b\u632f\u714a", "\u8def\u68a6\u742a", "\u95e8\u7199\u5586", "\u8499\u8bfa\u5bbd", "\u5434\u6653\u9e25", "\u6613\u946b\u552f", "\u5218\u82e5\u8861", "\u5434\u601d\u676c", "\u5305\u53c8\u83e1", "\u5468\u6893\u6dc7", "\u5218\u827a\u97ec", "\u9756\u7fca\u51e1", "\u674e\u95fb\u8f69", "\u91d1\u7199\u7693", "\u5f20\u743c\u4e88", "\u675c\u745e\u7f9a", "\u81e7\u5bcc\u5b58", "\u5b59\u827a\u83e1", "\u90b9\u51e4\u5929", "\u90b1\u6e50\u6dcb", "\u91d1\u8def\u4f9d", "\u9a6c\u5b87\u946b", "\u738b\u60a6\u5b81", "\u97e9\u58a8\u96c5", "\u8d75\u665f\u7af9", "\u5434\u6653\u73fa", "\u5b59\u6633\u8427", "\u5f20\u53ef\u6b23", "\u5b59\u6d69\u8bda", "\u5468\u8bd7\u6d0b", "\u738b\u85aa\u4e54"];
+        // 小组数据
+        const groups = [{"id": 646, "members": [{"class_id": 161, "group_id": 646, "id": 2564, "individual_score": 0.0, "name": "\u79e6\u6d5a\u6e90"}, {"class_id": 161, "group_id": 646, "id": 2579, "individual_score": 0.0, "name": "\u738b\u5b50\u5b89"}, {"class_id": 161, "group_id": 646, "id": 2582, "individual_score": 0.0, "name": "\u7530\u756f\u9716"}, {"class_id": 161, "group_id": 646, "id": 2588, "individual_score": 0.0, "name": "\u8363\u5b50\u6850"}, {"class_id": 161, "group_id": 646, "id": 2596, "individual_score": 0.0, "name": "\u674e\u663e\u4e00"}, {"class_id": 161, "group_id": 646, "id": 2597, "individual_score": 0.0, "name": "\u674e\u6cc9\u5b9c"}], "name": "\u8ffd\u5149\u7ec4", "score": 0}, {"id": 647, "members": [{"class_id": 161, "group_id": 647, "id": 2559, "individual_score": 2.0, "name": "\u59da\u6c90\u8a00"}, {"class_id": 161, "group_id": 647, "id": 2563, "individual_score": 0.0, "name": "\u8d75\u5a49\u626c"}, {"class_id": 161, "group_id": 647, "id": 2565, "individual_score": 0.0, "name": "\u738b\u632f\u714a"}, {"class_id": 161, "group_id": 647, "id": 2573, "individual_score": 0.0, "name": "\u8def\u68a6\u742a"}, {"class_id": 161, "group_id": 647, "id": 2580, "individual_score": 0.0, "name": "\u95e8\u7199\u5586"}], "name": "\u8ffd\u68a6\u7ec4", "score": 0}, {"id": 648, "members": [{"class_id": 161, "group_id": 648, "id": 2560, "individual_score": 0.0, "name": "\u8499\u8bfa\u5bbd"}, {"class_id": 161, "group_id": 648, "id": 2567, "individual_score": 0.0, "name": "\u5434\u6653\u9e25"}, {"class_id": 161, "group_id": 648, "id": 2569, "individual_score": 0.0, "name": "\u6613\u946b\u552f"}, {"class_id": 161, "group_id": 648, "id": 2571, "individual_score": 0.0, "name": "\u5218\u82e5\u8861"}, {"class_id": 161, "group_id": 648, "id": 2572, "individual_score": 0.0, "name": "\u5434\u601d\u676c"}, {"class_id": 161, "group_id": 648, "id": 2576, "individual_score": 0.0, "name": "\u5305\u53c8\u83e1"}, {"class_id": 161, "group_id": 648, "id": 2581, "individual_score": 0.0, "name": "\u5468\u6893\u6dc7"}, {"class_id": 161, "group_id": 648, "id": 2583, "individual_score": 0.0, "name": "\u5218\u827a\u97ec"}, {"class_id": 161, "group_id": 648, "id": 2593, "individual_score": 0.0, "name": "\u9756\u7fca\u51e1"}], "name": "\u56e2\u7ed3\u7ec4", "score": 0}, {"id": 649, "members": [{"class_id": 161, "group_id": 649, "id": 2562, "individual_score": 0.0, "name": "\u674e\u95fb\u8f69"}, {"class_id": 161, "group_id": 649, "id": 2566, "individual_score": 0.0, "name": "\u91d1\u7199\u7693"}, {"class_id": 161, "group_id": 649, "id": 2570, "individual_score": 0.0, "name": "\u5f20\u743c\u4e88"}, {"class_id": 161, "group_id": 649, "id": 2575, "individual_score": 0.0, "name": "\u675c\u745e\u7f9a"}, {"class_id": 161, "group_id": 649, "id": 2577, "individual_score": 0.0, "name": "\u81e7\u5bcc\u5b58"}, {"class_id": 161, "group_id": 649, "id": 2584, "individual_score": 0.0, "name": "\u5b59\u827a\u83e1"}, {"class_id": 161, "group_id": 649, "id": 2591, "individual_score": 0.0, "name": "\u90b9\u51e4\u5929"}, {"class_id": 161, "group_id": 649, "id": 2592, "individual_score": 0.0, "name": "\u90b1\u6e50\u6dcb"}, {"class_id": 161, "group_id": 649, "id": 2594, "individual_score": 0.0, "name": "\u91d1\u8def\u4f9d"}, {"class_id": 161, "group_id": 649, "id": 2595, "individual_score": 0.0, "name": "\u9a6c\u5b87\u946b"}], "name": "\u594b\u8fdb\u62fc\u640f\u7ec4", "score": 0}, {"id": 650, "members": [{"class_id": 161, "group_id": 650, "id": 2561, "individual_score": 0.0, "name": "\u738b\u60a6\u5b81"}, {"class_id": 161, "group_id": 650, "id": 2568, "individual_score": 0.0, "name": "\u97e9\u58a8\u96c5"}, {"class_id": 161, "group_id": 650, "id": 2574, "individual_score": 0.0, "name": "\u8d75\u665f\u7af9"}, {"class_id": 161, "group_id": 650, "id": 2578, "individual_score": 0.0, "name": "\u5434\u6653\u73fa"}, {"class_id": 161, "group_id": 650, "id": 2585, "individual_score": 0.0, "name": "\u5b59\u6633\u8427"}, {"class_id": 161, "group_id": 650, "id": 2586, "individual_score": 0.0, "name": "\u5f20\u53ef\u6b23"}, {"class_id": 161, "group_id": 650, "id": 2587, "individual_score": 0.0, "name": "\u5b59\u6d69\u8bda"}, {"class_id": 161, "group_id": 650, "id": 2589, "individual_score": 0.0, "name": "\u5468\u8bd7\u6d0b"}, {"class_id": 161, "group_id": 650, "id": 2590, "individual_score": 0.0, "name": "\u738b\u85aa\u4e54"}], "name": "\u9633\u5149\u7ec4", "score": 0}];
+        
+        let rolling = false;
+        // 滚动速度
+        let rollSpeed = 200;
+        let savedScores = [];
+        // 记录上次点名的学生索引
+        let lastRolledIndex = Math.floor(Math.random() * allStudents.length);
+        
+        // 奖品和概率
+        let prizes = [
+            { name: "一张贴纸", probability: 0.5 },
+            { name: "课间在班级内播放一首你喜欢的歌曲", probability: 0.05 },
+            { name: "与喜欢的老师或好朋友合影（老师帮忙拍摄）", probability: 0.03 },
+            { name: "指定一名同学帮你回答老师的提问（一次）", probability: 0.05 },
+            { name: "过生日时，全班同学给你唱生日歌，老师录像", probability: 0.01 },
+            { name: "当一天值日班长", probability: 0.05 },
+            { name: "免罚金牌", probability: 0.05 },
+            { name: "选一个同学做一天同桌", probability: 0.01 },
+            { name: "再抽一次", probability: 0.05 },
+            { name: "随机一个本子", probability: 0.2 }
+        ];
+        let isDefaultPrizes = true;
+
+        let isLotteryRolling = false;
+        let lotteryInterval;
+        let lotterySpeed = 100;
+
+        // 模态框中的抽奖相关变量
+        let modalLotteryInterval;
+        let isModalLotteryRolling = false;
+        let modalLotterySpeed = 100;
+
+        // 创建动态小星星
+        function createStars() {
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className ='star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = Math.random() * 3 + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = Math.random() * 5 + 3 +'s';
+                document.body.appendChild(star);
+            }
+        }
+
+        function createGroups() {
+            const container = document.getElementById('groups');
+            groups.forEach((group, i) => {
+                const div = document.createElement('div');
+                div.className = 'group';
+                let memberHTML = '';
+                group.members.forEach((member, index) => {
+                    memberHTML += `<div>${member.name}</div>`;
+                });
+                div.innerHTML = `
+                    <div>${group.name}</div>
+                    ${memberHTML}
+                    <div class="score">
+                        <button onclick="changeScore(${group.id}, -1)">-</button>
+                        <span id="score-${group.id}">${group.score}</span>
+                        <button onclick="changeScore(${group.id}, 1)">+</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function changeScore(groupId, delta) {
+            fetch('/update_score', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    group_id: groupId,
+                    delta: delta
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`score-${groupId}`).textContent = data.new_score;
+                    // 更新本地组数据
+                    const groupIndex = groups.findIndex(g => g.id === groupId);
+                    if (groupIndex !== -1) {
+                        groups[groupIndex].score = data.new_score;
+                    }
+                    updateRanking();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+
+        function updateRanking() {
+            const sorted = [...groups].sort((a, b) => b.score - a.score).slice(0, 6);
+            document.getElementById('ranking').innerHTML = `
+                <div style="font-size:2em;margin-bottom:20px;">🏆 排行榜</div>
+                ${sorted.map((g, i) => `
+                    <div class="rank-item">
+                        ${i < 3? '👑'.repeat(3 - i) : ''} ${g.name} 
+                        <span style="float:right">${g.score}分</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function startRoll() {
+            rolling = true;
+            const roll = () => {
+                if (!rolling) return;
+                // 随机选择下一个学生，从上次的索引开始
+                lastRolledIndex = (lastRolledIndex + 1) % allStudents.length;
+                document.getElementById('rollName').textContent = allStudents[lastRolledIndex];
+                setTimeout(roll, rollSpeed);
+            }
+            roll();
+        }
+
+        function stopRoll() {
+            rolling = false;
+        }
+
+        // 改变滚动速度
+        function changeSpeed(speed) {
+            // 反向处理速度值
+            rollSpeed = 210 - speed;
+        }
+
+        // 一键给所有小组加指定分数
+        function addScoreToAllGroups(delta) {
+            fetch('/update_all_scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId,
+                    delta: delta
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新所有小组分数
+                    for (const [groupId, newScore] of Object.entries(data.updated_scores)) {
+                        document.getElementById(`score-${groupId}`).textContent = newScore;
+                        // 更新本地组数据
+                        const groupIndex = groups.findIndex(g => g.id === parseInt(groupId));
+                        if (groupIndex !== -1) {
+                            groups[groupIndex].score = newScore;
+                        }
+                    }
+                    updateRanking();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 保存当前积分
+        function saveScores() {
+            // 保存所有组的分数
+            fetch('/save_scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId,
+                    groups: groups
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('分数已保存');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('保存分数时出错');
+            });
+        }
+
+        // 恢复上一次保存的分数
+        function restoreScores() {
+            // 恢复上一次保存的分数
+            fetch('/restore_scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新组分数
+                    data.groups.forEach(g => {
+                        const groupIndex = groups.findIndex(group => group.id === g.id);
+                        if (groupIndex !== -1) {
+                            groups[groupIndex].score = g.score;
+                            document.getElementById(`score-${g.id}`).textContent = g.score;
+                        }
+                    });
+                    updateRanking();
+                    alert('分数已恢复');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('恢复分数时出错');
+            });
+        }
+
+        // 一键给所有小组加指定分数
+        function addScoreToAll() {
+            const score = prompt('请输入要给所有组加的分数:', '1');
+            if (score === null) return;
+            
+            const scoreValue = parseInt(score);
+            if (isNaN(scoreValue)) {
+                alert('请输入有效的数字');
+                return;
+            }
+            
+            // 给所有组加分
+            fetch('/add_score_to_all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId,
+                    score: scoreValue
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新组分数
+                    data.groups.forEach(g => {
+                        const groupIndex = groups.findIndex(group => group.id === g.id);
+                        if (groupIndex !== -1) {
+                            groups[groupIndex].score = g.score;
+                            document.getElementById(`score-${g.id}`).textContent = g.score;
+                        }
+                    });
+                    updateRanking();
+                    alert(`已给所有组加${scoreValue}分`);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('给所有组加分时出错');
+            });
+        }
+
+        // 一键清空所有积分
+        function clearScores() {
+            if (!confirm('确定要清空所有组的分数吗？')) return;
+            
+            // 清空所有组的分数
+            fetch('/clear_scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新组分数
+                    groups.forEach(g => {
+                        g.score = 0;
+                        document.getElementById(`score-${g.id}`).textContent = '0';
+                    });
+                    updateRanking();
+                    alert('所有组的分数已清空');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('清空分数时出错');
+            });
+        }
+
+        // 分配小组积分到个人
+        function distributeGroupScores() {
+            if (confirm('确定要将小组积分分配给组内成员吗？每个成员将获得平均分。')) {
+                fetch('/distribute_group_scores', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        class_id: classId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('小组积分已成功分配给个人！');
+                        viewIndividualScores();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        // 查看个人积分
+        function viewIndividualScores() {
+            fetch(`/get_individual_scores/${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayIndividualScores(data.students);
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+        
+        // 显示个人积分
+        function displayIndividualScores(students) {
+            const modal = document.getElementById('scoreRecordModal');
+            const content = document.getElementById('scoreRecordContent');
+            
+            // 先清空内容
+            content.innerHTML = '';
+            
+            // 添加关闭按钮作为第一个元素
+            const closeButton = document.createElement('button');
+            closeButton.id = 'closeScoreRecordButton';
+            closeButton.textContent = '关闭';
+            closeButton.onclick = closeScoreRecordModal;
+            content.appendChild(closeButton);
+            
+            // 添加标题
+            const title = document.createElement('h2');
+            title.style.gridColumn = '1 / -1';
+            title.textContent = '各小组各成员个人积分';
+            content.appendChild(title);
+            
+            // 添加学生积分项
+            students.forEach((student) => {
+                const div = document.createElement('div');
+                div.className = 'individual-score-item';
+                div.innerHTML = `
+                    ${student.group_name} - ${student.name}: 
+                    <span id="individual-score-${student.id}">${student.individual_score}</span>
+                    <button onclick="changeIndividualScore(${student.id}, -1)">-</button>
+                    <button onclick="changeIndividualScore(${student.id}, 1)">+</button>
+                `;
+                content.appendChild(div);
+            });
+            
+            // 添加一键减分区域
+            const reduceScoreDiv = document.createElement('div');
+            reduceScoreDiv.style.gridColumn = '1 / -1';
+            reduceScoreDiv.style.textAlign = 'center';
+            reduceScoreDiv.style.margin = '20px 0';
+            reduceScoreDiv.style.padding = '15px';
+            reduceScoreDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            reduceScoreDiv.style.borderRadius = '10px';
+            reduceScoreDiv.innerHTML = `
+                <h3 style="margin-top: 0; margin-bottom: 10px;">一键减分</h3>
+                <input type="text" id="reduceScoreInput" placeholder="输入要减分的姓名">
+                <input type="number" id="reduceScoreAmount" placeholder="输入减分数量" min="1" value="1">
+                <button id="reduceScoreButton" onclick="reduceIndividualScoreByName()">一键减分</button>
+            `;
+            content.appendChild(reduceScoreDiv);
+            
+            // 添加抽奖区域
+            const lotteryArea = document.createElement('div');
+            lotteryArea.id = 'modalLotteryArea';
+            lotteryArea.style.gridColumn = '1 / -1';
+            lotteryArea.style.textAlign = 'center';
+            lotteryArea.style.margin = '20px 0';
+            lotteryArea.style.padding = '20px';
+            lotteryArea.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            lotteryArea.style.borderRadius = '10px';
+            lotteryArea.style.position = 'relative';
+            
+            lotteryArea.innerHTML = `
+                <h3 style="margin-top: 0; margin-bottom: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">🎁 抽奖区域</h3>
+                <div id="modalLotteryResult" style="font-size: 1.8em; margin: 20px 0; padding: 15px; background: linear-gradient(90deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1)); border-radius: 10px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">点击开始抽奖</div>
+                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                    <button id="modalStartLotteryBtn" onclick="startModalLottery()" style="background: rgba(0, 255, 0, 0.2); border: 1px solid #00ff00; padding: 10px 20px; font-size: 1.2em;">开始抽奖</button>
+                    <button id="modalStopLotteryBtn" onclick="stopModalLottery()" style="background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; padding: 10px 20px; font-size: 1.2em;" disabled>停止抽奖</button>
+                </div>
+                <div style="margin-top: 15px;">
+                    <label for="modalLotterySpeed" style="margin-right: 10px;">调节抽奖速度:</label>
+                    <input type="range" id="modalLotterySpeed" min="10" max="200" value="100" oninput="changeModalLotterySpeed(this.value)" style="width: 200px; vertical-align: middle;">
+                </div>
+            `;
+            content.appendChild(lotteryArea);
+            
+            // 显示模态框
+            modal.style.display = 'flex';
+            createModalLotteryStars();
+        }
+
+        // 改变个人积分
+        function changeIndividualScore(studentId, delta) {
+            fetch('/update_individual_score', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    delta: delta
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`individual-score-${studentId}`).textContent = data.new_score;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 根据姓名减分
+        function reduceIndividualScoreByName() {
+            const name = document.getElementById('reduceScoreInput').value;
+            const amount = parseInt(document.getElementById('reduceScoreAmount').value);
+            
+            if (!name) {
+                alert('请输入学生姓名');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('请输入有效的减分数量');
+                return;
+            }
+            
+            fetch(`/get_individual_scores/${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const student = data.students.find(s => s.name === name);
+                        if (student) {
+                            changeIndividualScore(student.id, -amount);
+                        } else {
+                            alert('未找到该学生');
+                        }
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // 创建模态框中的抽奖特效星星
+        function createModalLotteryStars() {
+            const lotteryArea = document.getElementById('modalLotteryArea');
+            for (let i = 0; i < 20; i++) {
+                const star = document.createElement('div');
+                star.className = 'lottery-star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = Math.random() * 3 + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = Math.random() * 2 + 1 + 's';
+                lotteryArea.appendChild(star);
+            }
+        }
+
+        // 移除模态框中的抽奖特效星星
+        function removeModalLotteryStars() {
+            const lotteryArea = document.getElementById('modalLotteryArea');
+            if (lotteryArea) {
+                const stars = lotteryArea.querySelectorAll('.lottery-star');
+                stars.forEach(star => star.remove());
+            }
+        }
+
+        // 开始模态框中的抽奖
+        function startModalLottery() {
+            if (isModalLotteryRolling) return;
+            
+            const startBtn = document.getElementById('modalStartLotteryBtn');
+            const stopBtn = document.getElementById('modalStopLotteryBtn');
+            
+            if (!startBtn || !stopBtn) return;
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            isModalLotteryRolling = true;
+            
+            const speed = document.getElementById('modalLotterySpeed')?.value || 100;
+            const resultElement = document.getElementById('modalLotteryResult');
+            
+            if (!resultElement) return;
+            
+            // 开始滚动显示奖品
+            modalLotteryInterval = setInterval(() => {
+                const random = Math.random();
+                let cumulativeProbability = 0;
+                for (let prize of prizes) {
+                    cumulativeProbability += prize.probability;
+                    if (random < cumulativeProbability) {
+                        resultElement.textContent = prize.name;
+                        break;
+                    }
+                }
+            }, modalLotterySpeed);
+        }
+
+        // 停止模态框中的抽奖
+        function stopModalLottery() {
+            if (!isModalLotteryRolling) return;
+            
+            clearInterval(modalLotteryInterval);
+            
+            const startBtn = document.getElementById('modalStartLotteryBtn');
+            const stopBtn = document.getElementById('modalStopLotteryBtn');
+            const resultElement = document.getElementById('modalLotteryResult');
+            
+            if (!startBtn || !stopBtn || !resultElement) return;
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            isModalLotteryRolling = false;
+            
+            // 根据概率确定最终奖品
+            const random = Math.random();
+            let cumulativeProbability = 0;
+            let finalPrize = prizes[0].name; // 默认第一个奖品
+            
+            for (let prize of prizes) {
+                cumulativeProbability += prize.probability;
+                if (random < cumulativeProbability) {
+                    finalPrize = prize.name;
+                    break;
+                }
+            }
+            
+            // 显示最终奖品
+            resultElement.textContent = `恭喜获得: ${finalPrize}`;
+        }
+
+        // 改变模态框中的抽奖滚动速度
+        function changeModalLotterySpeed(speed) {
+            // 反向处理速度值
+            modalLotterySpeed = 210 - speed;
+            if (isModalLotteryRolling) {
+                clearInterval(modalLotteryInterval);
+                startModalLottery();
+            }
+        }
+
+        // 关闭积分记录窗口
+        function closeScoreRecordModal() {
+            const modal = document.getElementById('scoreRecordModal');
+            modal.style.display = 'none';
+            
+            // 如果正在抽奖，停止抽奖
+            if (isModalLotteryRolling) {
+                stopModalLottery();
+            }
+            
+            // 移除抽奖特效星星
+            removeModalLotteryStars();
+        }
+
+        // 开始抽奖
+        function startLottery() {
+            if (isLotteryRolling) return;
+            
+            const startBtn = document.getElementById('startLotteryBtn');
+            const stopBtn = document.getElementById('stopLotteryBtn');
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            isLotteryRolling = true;
+            
+            const speed = document.getElementById('lotterySpeed').value;
+            const prizeDisplay = document.getElementById('prizeDisplay');
+            
+            // 开始滚动显示奖品
+            lotteryInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * prizes.length);
+                prizeDisplay.textContent = prizes[randomIndex].name;
+            }, 1000 - speed); // 速度反转，值越大速度越快
+        }
+        
+        // 停止抽奖
+        function stopLottery() {
+            if (!isLotteryRolling) return;
+            
+            clearInterval(lotteryInterval);
+            
+            const startBtn = document.getElementById('startLotteryBtn');
+            const stopBtn = document.getElementById('stopLotteryBtn');
+            const prizeDisplay = document.getElementById('prizeDisplay');
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            isLotteryRolling = false;
+            
+            // 根据概率确定最终奖品
+            const randomValue = Math.random();
+            let cumulativeProbability = 0;
+            let finalPrize = prizes[0].name; // 默认第一个奖品
+            
+            for (const prize of prizes) {
+                cumulativeProbability += prize.probability;
+                if (randomValue <= cumulativeProbability) {
+                    finalPrize = prize.name;
+                    break;
+                }
+            }
+            
+            // 显示最终奖品
+            prizeDisplay.textContent = `恭喜获得: ${finalPrize}`;
+        }
+
+        // 初始化
+        createGroups();
+        updateRanking();
+        createStars();
+        
+        // 加载班级奖品设置
+        loadPrizes();
+        
+        // 加载班级奖品设置
+        function loadPrizes() {
+            fetch(`/get_prizes/${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        prizes = data.prizes;
+                        isDefaultPrizes = data.is_default;
+                    }
+                })
+                .catch(error => {
+                    console.error('加载奖品设置时出错:', error);
+                });
+        }
+        
+        // 打开奖品管理对话框
+        function openPrizesDialog() {
+            const dialog = document.getElementById('prizesDialog');
+            const tableBody = document.getElementById('prizesTableBody');
+            
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            // 添加奖品行
+            prizes.forEach((prize, index) => {
+                addPrizeRow(prize.name, prize.probability, index);
+            });
+            
+            // 更新总概率
+            updateTotalProbability();
+            
+            // 显示对话框
+            dialog.style.display = 'flex';
+        }
+        
+        // 添加奖品行
+        function addPrizeRow(name = '', probability = 0, index = -1) {
+            const tableBody = document.getElementById('prizesTableBody');
+            const row = document.createElement('tr');
+            row.className = 'prize-row';
+            
+            // 如果是新行，添加到最后
+            if (index === -1) {
+                index = tableBody.children.length;
+            }
+            
+            row.innerHTML = `
+                <td><input type="text" class="prize-name" value="${name}" placeholder="奖品名称"></td>
+                <td><input type="number" class="prize-probability" value="${probability}" min="0" max="1" step="0.01" placeholder="概率 (0-1)"></td>
+                <td><button class="remove-prize-btn" onclick="removePrizeRow(this)">×</button></td>
+            `;
+            
+            // 添加事件监听器，当概率改变时更新总概率
+            const probabilityInput = row.querySelector('.prize-probability');
+            probabilityInput.addEventListener('input', updateTotalProbability);
+            
+            tableBody.appendChild(row);
+        }
+        
+        // 移除奖品行
+        function removePrizeRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotalProbability();
+        }
+        
+        // 更新总概率
+        function updateTotalProbability() {
+            const probabilityInputs = document.querySelectorAll('.prize-probability');
+            let total = 0;
+            
+            probabilityInputs.forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                total += value;
+            });
+            
+            const totalElement = document.getElementById('totalProbability');
+            const warningElement = document.getElementById('probabilityWarning');
+            
+            totalElement.textContent = total.toFixed(2);
+            
+            // 如果总概率不接近1，显示警告
+            if (Math.abs(total - 1) > 0.01) {
+                warningElement.style.display = 'inline';
+            } else {
+                warningElement.style.display = 'none';
+            }
+        }
+        
+        // 保存奖品设置
+        function savePrizes() {
+            const rows = document.querySelectorAll('.prize-row');
+            const newPrizes = [];
+            
+            rows.forEach(row => {
+                const nameInput = row.querySelector('.prize-name');
+                const probabilityInput = row.querySelector('.prize-probability');
+                
+                const name = nameInput.value.trim();
+                const probability = parseFloat(probabilityInput.value) || 0;
+                
+                if (name && probability > 0) {
+                    newPrizes.push({
+                        name: name,
+                        probability: probability
+                    });
+                }
+            });
+            
+            // 验证总概率
+            const total = newPrizes.reduce((sum, prize) => sum + prize.probability, 0);
+            if (Math.abs(total - 1) > 0.01) {
+                alert(`奖品概率总和应为1，当前为${total.toFixed(2)}`);
+                return;
+            }
+            
+            // 发送到服务器
+            fetch(`/update_prizes/${classId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prizes: newPrizes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    prizes = data.prizes;
+                    isDefaultPrizes = false;
+                    alert('奖品设置已保存！');
+                    closePrizesDialog();
+                } else {
+                    alert(data.message || '保存奖品设置失败');
+                }
+            })
+            .catch(error => {
+                console.error('保存奖品设置时出错:', error);
+                alert('保存奖品设置时出错，请重试。');
+            });
+        }
+        
+        // 重置为默认奖品
+        function resetPrizes() {
+            if (confirm('确定要重置为默认奖品设置吗？')) {
+                fetch(`/reset_prizes/${classId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 重新加载默认奖品
+                        loadPrizes();
+                        alert('已重置为默认奖品设置！');
+                        closePrizesDialog();
+                    } else {
+                        alert(data.message || '重置奖品设置失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('重置奖品设置时出错:', error);
+                    alert('重置奖品设置时出错，请重试。');
+                });
+            }
+        }
+        
+        // 关闭奖品管理对话框
+        function closePrizesDialog() {
+            const dialog = document.getElementById('prizesDialog');
+            dialog.style.display = 'none';
+        }
+        
+        // 初始化奖品管理对话框
+        function initPrizesDialog() {
+            // 添加奖品按钮
+            document.getElementById('addPrizeBtn').addEventListener('click', () => {
+                addPrizeRow();
+            });
+            
+            // 保存奖品按钮
+            document.getElementById('savePrizesBtn').addEventListener('click', savePrizes);
+            
+            // 重置奖品按钮
+            document.getElementById('resetPrizesBtn').addEventListener('click', resetPrizes);
+            
+            // 关闭按钮
+            document.getElementById('closePrizesButton').addEventListener('click', closePrizesDialog);
+            
+            // 点击对话框外部关闭对话框
+            document.getElementById('prizesDialog').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closePrizesDialog();
+                }
+            });
+        }
+        
+        // 页面加载完成后初始化奖品管理对话框
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化奖品管理对话框
+            initPrizesDialog();
+            
+            // 获取班级ID
+            const classId = document.getElementById('classId').value;
+            
+            // 获取学生数据
+            fetch(`/get_students/${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    students = data;
+                })
+                .catch(error => console.error('获取学生数据失败:', error));
+            
+            // 获取小组数据
+            fetch(`/get_groups/${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    groups = data;
+                })
+                .catch(error => console.error('获取小组数据失败:', error));
+            
+            // 创建动态星星
+            createStars();
+            
+            // 初始化抽奖区域
+            createLotteryStars();
+            
+            // 设置抽奖按钮事件
+            document.getElementById('startLotteryBtn').addEventListener('click', startLottery);
+            document.getElementById('stopLotteryBtn').addEventListener('click', stopLottery);
+            document.getElementById('lotterySpeed').addEventListener('input', function() {
+                changeLotterySpeed(this.value);
+            });
+            
+            // 设置关闭积分记录窗口的事件
+            document.getElementById('closeScoreRecordBtn')?.addEventListener('click', closeScoreRecordModal);
+            
+            // 设置窗口点击事件，点击窗口外部关闭窗口
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('scoreRecordModal');
+                if (event.target === modal) {
+                    closeScoreRecordModal();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html> 
